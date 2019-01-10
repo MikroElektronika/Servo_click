@@ -1,0 +1,84 @@
+'
+'Example for Servo Click
+'
+'    Date          : Feb 2018.
+'    Author        : MikroE Team
+'
+'Test configuration dsPIC :
+'    
+'    MCU                : P33FJ256GP710A
+'    Dev. Board         : EasyPIC Fusion v7
+'    dsPIC Compiler ver : v7.0.1.0
+'
+'---
+'
+'Description :
+'
+'The application is composed of three sections :
+'
+'- System Initialization - Initializes I2C module and CS pin as output
+'- Application Initialization - Initializes driver init and servo init (setting the minimum and maximum servo motors position and resolutions).
+'                               Default resolutions is 1ms. Then sets the chip to sleep mode to set the frequency, after setting the frequency, 
+'                               the working mode of the servo motor is set.
+'- Application Task - (code snippet) - The servo motor is set at three different positions 0, 90, 180 - every two second,
+'                                      and reads current value witch motor spends in the moment when it runs to new position.
+'
+'
+program Click_Servo_DSPIC
+
+include Click_Servo_types
+include Click_Servo_config
+
+dim
+    Current as uint16_t 
+    text as char[256] 
+    
+sub procedure systemInit() 
+
+    mikrobus_gpioInit(_MIKROBUS1, _MIKROBUS_CS_PIN, _GPIO_OUTPUT) 
+    mikrobus_i2cInit(_MIKROBUS1, @_SERVO_I2C_CFG[0]) 
+    mikrobus_logInit(_LOG_USBUART_A, 9600) 
+    mikrobus_logWrite(" --- system init ---", _LOG_LINE) 
+    Delay_ms(100) 
+
+end sub
+
+sub procedure applicationInit() 
+
+    servo_i2cDriverInit(T_SERVO_P(@_MIKROBUS1_GPIO), T_SERVO_P(@_MIKROBUS1_I2C), 0x40, 0x14) 
+    servo_init(0, 180, _SERVO_DEFAULT_LOW_RESOLUTION, _SERVO_DEFAULT_HIGH_RESOLUTION) 
+    servo_setVref(_SERVO_VREF_3300) 
+    servo_setMode(_SERVO_REG_MODE_1, (_SERVO_MODE1_RESTART_ENABLE or _SERVO_MODE1_USE_ALL_CALL_ADR)) 
+    servo_sleep() 
+    servo_setFREQ(30) ' 30 Hz
+    servo_setMode(_SERVO_REG_MODE_1, ((_SERVO_MODE1_RESTART_ENABLE or _SERVO_MODE1_AUTO_INCREMENT_ENABLE) or _SERVO_MODE1_USE_ALL_CALL_ADR)) 
+
+end sub
+
+sub procedure applicationTask() 
+
+    servo_setPosition(_SERVO_MOTOR_1, 0) 
+    Delay_ms(2000) 
+    servo_setPosition(_SERVO_MOTOR_1, 90) 
+    Delay_ms(1000) 
+    servo_setPosition(_SERVO_MOTOR_1, 180) 
+    Delay_ms(2000) 
+    servo_setPosition(_SERVO_MOTOR_1, 90) 
+    Current = setvo_getCurrent(_SERVO_POSITIVE_CH0) 
+    IntToStr(Current, text) 
+    mikrobus_logWrite("Current - ", _LOG_TEXT) 
+    mikrobus_logWrite(text, _LOG_TEXT) 
+    mikrobus_logWrite(" mA", _LOG_LINE) 
+    Delay_ms(1000) 
+
+end sub
+
+main :
+
+    systemInit() 
+    applicationInit() 
+    while (1) 
+        applicationTask() 
+    wend
+
+end.

@@ -1,0 +1,8 @@
+unit Click_Servo_config;
+
+uses Click_Servo_types;
+
+const
+    _SERVO_I2C_CFG : array[1] of uint32_t = (_I2C_100KHZ); 
+    
+end.
